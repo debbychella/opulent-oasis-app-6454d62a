@@ -1,61 +1,78 @@
 
-# Luxury Salon & Spa Landing Page
 
-A premium, dark-themed marketing landing page for a high-end salon and spa booking platform with gold accents and elegant typography.
+# Add Authentication with Email/Password + Google
 
-## Design Direction
-- **Palette:** Deep charcoal/near-black background, warm gold (#D4AF37-style) primary accent, soft cream text, subtle warm-toned surfaces for cards.
-- **Typography:** Elegant serif (e.g., Playfair Display) for headings, clean sans-serif (Inter) for body.
-- **Feel:** Soft shadows, generous spacing, subtle gold-glow hovers, refined imagery, no harsh contrasts.
+A premium dark-themed auth flow using Supabase, with login, signup, and a protected dashboard.
 
-## Sections
+## Pages & Components
 
-1. **Navbar (sticky, translucent dark)**
-   - Gold wordmark logo "Lumière" (or similar) on the left
-   - Links: Home · Services · Book · Sign In
-   - Highlighted "Book Now" CTA button on the right
+1. **`/auth` — Combined Login / Sign Up page**
+   - Dark background with subtle gold accents matching Lumière brand (Playfair headings, gold buttons)
+   - Toggle between "Sign In" and "Create Account" tabs
+   - Email + password fields (with show/hide password toggle)
+   - "Continue with Google" button (with Google icon, outlined gold style)
+   - Elegant divider between OAuth and email form
+   - Error/success toasts via existing `sonner`
+   - Link back to home
 
-2. **Hero**
-   - Full-width high-quality spa image with dark gradient overlay
-   - Headline: *"Luxury Beauty & Wellness, Booked Effortlessly"*
-   - Supporting subtext about discovering top salons and spas
-   - Primary "Book Now" gold button + secondary "Explore Services" ghost button
+2. **`/dashboard` — Protected member area**
+   - Welcome header with user's email
+   - Placeholder cards: Upcoming Bookings, Membership Status, Recommended Services
+   - Sign Out button in the top right
+   - Redirects unauthenticated users to `/auth`
 
-3. **Service Categories**
-   - Section title + short intro
-   - 5 elegant cards in a responsive grid: **Hair, Skin, Nails, Makeup, Spa**
-   - Each card: icon, name, one-line description, soft gold border on hover
+3. **`AuthProvider` context (`src/contexts/AuthContext.tsx`)**
+   - Wraps the app, exposes `user`, `session`, `loading`, `signOut`
+   - Sets up `onAuthStateChange` listener BEFORE calling `getSession()` (per Supabase best practice)
+   - Used by `ProtectedRoute` and Navbar
 
-4. **Why Choose Us**
-   - 4 feature tiles with icons:
-     - Verified Luxury Partners
-     - Instant Booking
-     - Personalized Recommendations
-     - Member-Only Perks
+4. **`ProtectedRoute` wrapper**
+   - Redirects to `/auth` if no session
+   - Shows loading state while session resolves
 
-5. **Membership Preview**
-   - 3 pricing cards:
-     - **Pay Per Visit** — flexible, no commitment
-     - **Monthly — $149/mo** (highlighted as "Most Popular" with gold border/glow)
-     - **VIP — $299/mo** — premium perks, priority booking
-   - Each card: plan name, price, 4–5 benefit bullets, CTA button
+5. **Navbar updates**
+   - "Sign In" link → `/auth` (instead of `/booking`)
+   - When logged in: replace "Sign In" with "Dashboard" + avatar/email dropdown with Sign Out
 
-6. **Call-to-Action Banner**
-   - Centered headline ("Begin Your Wellness Journey Today")
-   - Subtext + prominent gold "Book Your First Session" button
-   - Subtle decorative gold divider
+## Auth Flow
 
-7. **Footer**
-   - Logo + tagline
-   - Columns: Company, Services, Support, Legal
-   - Social icons (Instagram, Facebook, Twitter)
-   - Copyright line
+- **Email/Password Sign Up**: `supabase.auth.signUp()` with `emailRedirectTo: ${window.location.origin}/dashboard`
+- **Email/Password Sign In**: `supabase.auth.signInWithPassword()` → redirect to `/dashboard`
+- **Google OAuth**: `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: ${window.location.origin}/dashboard } })`
+- **Sign Out**: `supabase.auth.signOut()` → redirect to `/`
+- Friendly error messages for common cases (invalid credentials, user already exists, weak password)
 
-## Interactions
-- Smooth scroll to anchored sections from navbar
-- Hover states with gentle gold glow on cards and buttons
-- Fully responsive (mobile menu via sheet/drawer)
+## Decision: User Profiles
+
+For now, **no profiles table** — we'll rely on Supabase's built-in `auth.users` (email is enough for the dashboard greeting). A profiles table can be added later when we need display names, avatars, roles, etc.
+
+## Routing (`App.tsx`)
+
+```text
+/              Index (public)
+/services      ServicesPage (public)
+/pricing       Pricing (public)
+/booking       Booking (public for now)
+/auth          Auth page (public)
+/dashboard     Dashboard (protected)
+```
+
+Wrap `<Routes>` with `<AuthProvider>`.
+
+## Google OAuth Setup (manual step for the user)
+
+Lovable can wire the code, but Google OAuth requires configuration in the Supabase dashboard:
+
+1. Create OAuth credentials in Google Cloud Console (Web application type)
+2. Add authorized redirect URL: `https://hfoqdresdyureziejvdc.supabase.co/auth/v1/callback`
+3. In Supabase Dashboard → Authentication → Providers → Google: enable + paste Client ID and Secret
+4. In Supabase Dashboard → Authentication → URL Configuration: set Site URL to the preview/published URL and add `/dashboard` to redirect allow-list
+
+I'll include a clear note in the chat with these steps and dashboard links after building.
 
 ## Notes
-- This is a static marketing page — no backend, auth, or real booking flow yet (Sign In and Book Now are visual CTAs).
-- Hero image generated to match the luxury dark spa aesthetic.
+
+- Email confirmation: by default Supabase requires email confirmation. For smoother testing, the user can disable "Confirm email" in Supabase Auth settings — I'll mention this.
+- All UI uses existing design tokens (`bg-gold`, `shadow-gold`, `font-serif`, `gradient-surface`) for consistency.
+- No new dependencies needed — `@supabase/supabase-js` is already installed.
+
