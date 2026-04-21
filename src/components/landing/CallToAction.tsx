@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export const CallToAction = () => {
   return (
@@ -19,10 +20,11 @@ export const CallToAction = () => {
             beauty and wellness experiences.
           </p>
           <Button
+            asChild
             size="lg"
             className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold h-12 px-10 text-base transition-smooth"
           >
-            Book Your First Session
+            <Link to="/booking">Book Your First Session</Link>
           </Button>
         </div>
       </div>
