@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-spa.jpg";
 
 export const Hero = () => {
@@ -34,7 +35,7 @@ export const Hero = () => {
               size="lg"
               className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold transition-smooth h-12 px-8 text-base"
             >
-              <a href="#book">Book Now</a>
+              <Link to="/booking">Book Now</Link>
             </Button>
             <Button
               asChild
@@ -42,7 +43,7 @@ export const Hero = () => {
               variant="outline"
               className="border-gold/60 text-gold bg-transparent hover:bg-gold/10 hover:text-gold h-12 px-8 text-base"
             >
-              <a href="#services">Explore Services</a>
+              <Link to="/services">Explore Services</Link>
             </Button>
           </div>
         </div>

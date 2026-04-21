@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const links = [
-  { label: "Home", href: "#home" },
-  { label: "Services", href: "#services" },
-  { label: "Book", href: "#book" },
-  { label: "Sign In", href: "#signin" },
+  { label: "Home", to: "/" },
+  { label: "Services", to: "/services" },
+  { label: "Book", to: "/booking" },
+  { label: "Sign In", to: "/booking" },
 ];
 
 export const Navbar = () => {
@@ -16,19 +17,19 @@ export const Navbar = () => {
   return (
     <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-background/70 border-b border-border/40">
       <nav className="container mx-auto flex items-center justify-between h-16 md:h-20 px-4">
-        <a href="#home" className="font-serif text-2xl md:text-3xl tracking-wide text-gold">
+        <Link to="/" className="font-serif text-2xl md:text-3xl tracking-wide text-gold">
           Lumière
-        </a>
+        </Link>
 
         <ul className="hidden md:flex items-center gap-10">
           {links.map((l) => (
             <li key={l.label}>
-              <a
-                href={l.href}
+              <Link
+                to={l.to}
                 className="text-sm text-foreground/80 hover:text-gold transition-smooth"
               >
                 {l.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
@@ -38,7 +39,7 @@ export const Navbar = () => {
             asChild
             className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold transition-smooth"
           >
-            <a href="#book">Book Now</a>
+            <Link to="/booking">Book Now</Link>
           </Button>
         </div>
 
@@ -53,21 +54,21 @@ export const Navbar = () => {
               <div className="mt-8 flex flex-col gap-6">
                 <span className="font-serif text-2xl text-gold">Lumière</span>
                 {links.map((l) => (
-                  <a
+                  <Link
                     key={l.label}
-                    href={l.href}
+                    to={l.to}
                     onClick={() => setOpen(false)}
                     className="text-lg text-foreground/90 hover:text-gold transition-smooth"
                   >
                     {l.label}
-                  </a>
+                  </Link>
                 ))}
                 <Button
                   asChild
                   className="bg-gold text-primary-foreground hover:bg-gold-bright mt-4"
                   onClick={() => setOpen(false)}
                 >
-                  <a href="#book">Book Now</a>
+                  <Link to="/booking">Book Now</Link>
                 </Button>
               </div>
             </SheetContent>

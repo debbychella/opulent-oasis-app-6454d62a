@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +21,10 @@ const plans = [
     name: "Monthly",
     price: "$149",
     period: "per month",
+    discount: "Save 15%",
     perks: [
       "Unlimited priority bookings",
-      "10% off all treatments",
+      "15% off all treatments",
       "Complimentary upgrades",
       "Personal wellness concierge",
       "Cancel anytime",
@@ -35,11 +37,14 @@ const plans = [
     name: "VIP",
     price: "$299",
     period: "per month",
+    discount: "Save 25%",
     perks: [
       "Everything in Monthly",
+      "25% off all treatments",
       "Priority access to top studios",
       "Private events & masterclasses",
       "Quarterly luxury gift box",
+      "Complimentary signature treatment monthly",
       "Dedicated VIP concierge 24/7",
     ],
     cta: "Become VIP",
@@ -77,10 +82,16 @@ export const Membership = () => {
               )}
 
               <h3 className="font-serif text-2xl mb-2">{plan.name}</h3>
-              <div className="mb-6">
+              <div className="mb-2">
                 <span className="font-serif text-5xl text-gold">{plan.price}</span>
                 <span className="text-muted-foreground text-sm ml-2">/ {plan.period}</span>
               </div>
+              {plan.discount && (
+                <span className="inline-block self-start mb-6 px-3 py-1 rounded-full border border-gold/40 text-gold text-xs tracking-wider uppercase">
+                  {plan.discount}
+                </span>
+              )}
+              {!plan.discount && <div className="mb-6" />}
 
               <ul className="space-y-3 mb-8 flex-1">
                 {plan.perks.map((p) => (
@@ -92,6 +103,7 @@ export const Membership = () => {
               </ul>
 
               <Button
+                asChild
                 className={cn(
                   "w-full h-11 transition-smooth",
                   plan.featured
@@ -99,7 +111,7 @@ export const Membership = () => {
                     : "bg-transparent border border-gold/50 text-gold hover:bg-gold/10",
                 )}
               >
-                {plan.cta}
+                <Link to="/pricing">{plan.cta}</Link>
               </Button>
             </div>
           ))}
