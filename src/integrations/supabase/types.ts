@@ -14,7 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          id: string
+          service_id: string | null
+          status: string | null
+          time: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          service_id?: string | null
+          status?: string | null
+          time?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          service_id?: string | null
+          status?: string | null
+          time?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          allergies: string | null
+          concerns: string | null
+          created_at: string | null
+          email: string | null
+          hair_type: string | null
+          id: string
+          skin_type: string | null
+        }
+        Insert: {
+          allergies?: string | null
+          concerns?: string | null
+          created_at?: string | null
+          email?: string | null
+          hair_type?: string | null
+          id?: string
+          skin_type?: string | null
+        }
+        Update: {
+          allergies?: string | null
+          concerns?: string | null
+          created_at?: string | null
+          email?: string | null
+          hair_type?: string | null
+          id?: string
+          skin_type?: string | null
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          duration: string | null
+          id: string
+          name: string | null
+          price: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          duration?: string | null
+          id?: string
+          name?: string | null
+          price?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          duration?: string | null
+          id?: string
+          name?: string | null
+          price?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
