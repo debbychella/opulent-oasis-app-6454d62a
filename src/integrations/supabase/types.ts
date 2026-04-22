@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string | null
           date: string
+          email: string | null
           id: string
           service_id: string
           status: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           date: string
+          email?: string | null
           id?: string
           service_id: string
           status?: string
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           date?: string
+          email?: string | null
           id?: string
           service_id?: string
           status?: string
@@ -48,13 +51,6 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

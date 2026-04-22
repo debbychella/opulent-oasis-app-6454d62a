@@ -88,6 +88,7 @@ const Booking = () => {
     setSubmitting(true);
     const { error } = await supabase.from("bookings").insert({
       user_id: user.id,
+      email: user.email,
       service_id: serviceId,
       date: format(date, "yyyy-MM-dd"),
       time,
