@@ -1,78 +1,63 @@
 
 
-# Add Authentication with Email/Password + Google
+# Complete Booking System
 
-A premium dark-themed auth flow using Supabase, with login, signup, and a protected dashboard.
+Extend the existing app with a working booking flow, dynamic services with real images, and a live dashboard — all backed by Supabase RLS.
 
-## Pages & Components
+## 1. Database (migration)
 
-1. **`/auth` — Combined Login / Sign Up page**
-   - Dark background with subtle gold accents matching Lumière brand (Playfair headings, gold buttons)
-   - Toggle between "Sign In" and "Create Account" tabs
-   - Email + password fields (with show/hide password toggle)
-   - "Continue with Google" button (with Google icon, outlined gold style)
-   - Elegant divider between OAuth and email form
-   - Error/success toasts via existing `sonner`
-   - Link back to home
+**Seed `services` table** (currently empty) with 10 rows across the 5 existing categories (Hair, Skin, Nails, Makeup, Spa) — each with name, category, price, duration.
 
-2. **`/dashboard` — Protected member area**
-   - Welcome header with user's email
-   - Placeholder cards: Upcoming Bookings, Membership Status, Recommended Services
-   - Sign Out button in the top right
-   - Redirects unauthenticated users to `/auth`
+**Add RLS policies** (currently missing on all 3 tables):
 
-3. **`AuthProvider` context (`src/contexts/AuthContext.tsx`)**
-   - Wraps the app, exposes `user`, `session`, `loading`, `signOut`
-   - Sets up `onAuthStateChange` listener BEFORE calling `getSession()` (per Supabase best practice)
-   - Used by `ProtectedRoute` and Navbar
+- `services` — public `SELECT` (anyone can browse).
+- `bookings` — `SELECT`, `INSERT`, `UPDATE`, `DELETE` restricted to `auth.uid() = user_id`.
+- `profiles` — `SELECT`/`UPDATE` restricted to `auth.uid() = id`.
 
-4. **`ProtectedRoute` wrapper**
-   - Redirects to `/auth` if no session
-   - Shows loading state while session resolves
+**Schema fixes on `bookings`**:
+- Make `user_id`, `service_id`, `date`, `time`, `status` `NOT NULL` (required for RLS to be safe).
+- Add `UNIQUE (service_id, date, time)` constraint to prevent double-booking the same slot.
 
-5. **Navbar updates**
-   - "Sign In" link → `/auth` (instead of `/booking`)
-   - When logged in: replace "Sign In" with "Dashboard" + avatar/email dropdown with Sign Out
+## 2. Services — dynamic + real images
 
-## Auth Flow
+- Add real high-quality images to `src/assets/` for each of the 5 categories (hair, skin, nails, makeup, spa) — generated to match the dark luxury aesthetic.
+- Update `src/components/landing/Services.tsx` to **fetch services from Supabase** and group them by category. Keep current card design; add the category image as a subtle background/top visual on each card. Each card links to `/booking?service={id}`.
+- Update `src/pages/ServicesPage.tsx` to list all individual services (grouped by category) pulled from the DB, each with a "Book" button → `/booking?service={id}`.
 
-- **Email/Password Sign Up**: `supabase.auth.signUp()` with `emailRedirectTo: ${window.location.origin}/dashboard`
-- **Email/Password Sign In**: `supabase.auth.signInWithPassword()` → redirect to `/dashboard`
-- **Google OAuth**: `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: ${window.location.origin}/dashboard } })`
-- **Sign Out**: `supabase.auth.signOut()` → redirect to `/`
-- Friendly error messages for common cases (invalid credentials, user already exists, weak password)
+## 3. Booking page (`/pages/Booking.tsx`)
 
-## Decision: User Profiles
+Replace the "coming soon" placeholder with a real 3-step flow (single page, sectioned):
 
-For now, **no profiles table** — we'll rely on Supabase's built-in `auth.users` (email is enough for the dashboard greeting). A profiles table can be added later when we need display names, avatars, roles, etc.
+1. **Select service** — dropdown/grid of services from DB (preselected if `?service=` query param present).
+2. **Choose date** — shadcn `Calendar` (date-fns), disables past dates.
+3. **Choose time** — fixed time slots (e.g. 10:00, 11:00, 13:00, 14:00, 15:00, 16:00, 17:00). Already-booked slots for the chosen service+date are fetched and disabled.
+4. **Confirm booking** — gold CTA button, calls `INSERT` into `bookings` with `user_id = auth.user.id`, `status = 'confirmed'`.
 
-## Routing (`App.tsx`)
+Behavior:
+- Wrap route in `<ProtectedRoute>` so unauthenticated users are redirected to `/auth`.
+- Loading state while fetching services / submitting.
+- Success: `sonner` toast "Booking confirmed" → redirect to `/dashboard`.
+- Duplicate prevention: rely on the unique constraint; catch error and show "This slot was just taken" toast.
+- Friendly error messages.
 
-```text
-/              Index (public)
-/services      ServicesPage (public)
-/pricing       Pricing (public)
-/booking       Booking (public for now)
-/auth          Auth page (public)
-/dashboard     Dashboard (protected)
-```
+## 4. Dashboard — real bookings
 
-Wrap `<Routes>` with `<AuthProvider>`.
+Update `src/pages/Dashboard.tsx`:
+- Replace static "Upcoming Bookings" card with a **live list** of the user's future bookings (joined with service name, category, price).
+- Show booking date, time, service, status. Empty state with "Book your first session" CTA.
+- Loading skeleton while fetching.
+- Cancel button per booking (deletes row, RLS-protected).
 
-## Google OAuth Setup (manual step for the user)
+Keep the other two cards (Membership, Recommended) as-is for now.
 
-Lovable can wire the code, but Google OAuth requires configuration in the Supabase dashboard:
+## 5. Navigation wiring
 
-1. Create OAuth credentials in Google Cloud Console (Web application type)
-2. Add authorized redirect URL: `https://hfoqdresdyureziejvdc.supabase.co/auth/v1/callback`
-3. In Supabase Dashboard → Authentication → Providers → Google: enable + paste Client ID and Secret
-4. In Supabase Dashboard → Authentication → URL Configuration: set Site URL to the preview/published URL and add `/dashboard` to redirect allow-list
+Already correct: Hero "Book Now", CallToAction, Navbar all point to `/booking`. Service cards on landing + services page will additionally pass `?service={id}` to preselect.
 
-I'll include a clear note in the chat with these steps and dashboard links after building.
+## Technical notes
 
-## Notes
-
-- Email confirmation: by default Supabase requires email confirmation. For smoother testing, the user can disable "Confirm email" in Supabase Auth settings — I'll mention this.
-- All UI uses existing design tokens (`bg-gold`, `shadow-gold`, `font-serif`, `gradient-surface`) for consistency.
-- No new dependencies needed — `@supabase/supabase-js` is already installed.
+- Use existing `supabase` client from `@/integrations/supabase/client`.
+- Use existing `useAuth()` for user id.
+- No new dependencies — `date-fns`, shadcn `Calendar`, `Select`, `Card`, `Button`, `sonner` already available.
+- Time slots are a static const array; no separate availability table needed for v1.
 
