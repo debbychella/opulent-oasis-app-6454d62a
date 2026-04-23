@@ -113,6 +113,19 @@ const Booking = () => {
       return;
     }
 
+    // Fire-and-forget webhook to n8n — never block or surface errors
+    const webhookPayload = {
+      service_name: selectedService?.name,
+      booking_date: format(date, "yyyy-MM-dd"),
+      booking_time: format(new Date(`2000-01-01T${time}:00`), "hh:mm a").toUpperCase(),
+      user_email: user.email,
+    };
+    fetch("https://debbyodion.app.n8n.cloud/webhook/booking-confirmation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(webhookPayload),
+    }).catch((err) => console.warn("Webhook failed (non-blocking):", err));
+
     toast.success("Booking confirmed");
     navigate("/dashboard");
   };
