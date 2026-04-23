@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
-import { LogOut, Calendar, Crown, Sparkles, Trash2 } from "lucide-react";
+import { LogOut, Calendar, History, Sparkles, Trash2, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,23 +19,36 @@ type BookingRow = {
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [bookings, setBookings] = useState<BookingRow[]>([]);
+  const [upcoming, setUpcoming] = useState<BookingRow[]>([]);
+  const [past, setPast] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBookings = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
-    const { data, error } = await supabase
-      .from("bookings")
-      .select("id, date, time, status, service:services(name, category, price)")
-      .eq("user_id", user.id)
-      .gte("date", today)
-      .order("date", { ascending: true })
-      .order("time", { ascending: true });
 
-    if (error) toast.error("Could not load bookings.");
-    setBookings((data as any) ?? []);
+    const [upRes, pastRes] = await Promise.all([
+      supabase
+        .from("bookings")
+        .select("id, date, time, status, service:services(name, category, price)")
+        .eq("user_id", user.id)
+        .gte("date", today)
+        .order("date", { ascending: true })
+        .order("time", { ascending: true }),
+      supabase
+        .from("bookings")
+        .select("id, date, time, status, service:services(name, category, price)")
+        .eq("user_id", user.id)
+        .lt("date", today)
+        .order("date", { ascending: false })
+        .order("time", { ascending: false })
+        .limit(10),
+    ]);
+
+    if (upRes.error || pastRes.error) toast.error("Could not load bookings.");
+    setUpcoming((upRes.data as any) ?? []);
+    setPast((pastRes.data as any) ?? []);
     setLoading(false);
   }, [user]);
 
@@ -55,7 +68,7 @@ const Dashboard = () => {
       return;
     }
     toast.success("Booking cancelled");
-    setBookings((prev) => prev.filter((b) => b.id !== id));
+    setUpcoming((prev) => prev.filter((b) => b.id !== id));
   };
 
   return (
@@ -66,14 +79,22 @@ const Dashboard = () => {
             <p className="text-gold tracking-[0.3em] text-xs uppercase">Lumière</p>
             <h1 className="font-serif text-xl">Dashboard</h1>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleSignOut}
-            className="border-gold/50 text-gold hover:bg-gold/10"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" className="text-foreground/80 hover:text-gold">
+              <Link to="/profile">
+                <UserIcon className="h-4 w-4" />
+                Profile
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              className="border-gold/50 text-gold hover:bg-gold/10"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -85,17 +106,21 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Your wellness journey, beautifully organized.</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3 mb-10">
-          {/* Upcoming Bookings (live) */}
-          <div className="md:col-span-3 rounded-2xl border border-border/60 bg-card/60 p-6">
-            <div className="flex items-center justify-between mb-5">
+        <div className="space-y-6">
+          {/* Upcoming */}
+          <section className="rounded-2xl border border-border/60 bg-card/60 p-6">
+            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-gradient-gold flex items-center justify-center">
                   <Calendar className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <h3 className="font-serif text-xl">Upcoming Bookings</h3>
               </div>
-              <Button asChild size="sm" className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold">
+              <Button
+                asChild
+                size="sm"
+                className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold"
+              >
                 <Link to="/booking">New Booking</Link>
               </Button>
             </div>
@@ -106,74 +131,120 @@ const Dashboard = () => {
                   <Skeleton key={i} className="h-16 rounded-lg" />
                 ))}
               </div>
-            ) : bookings.length === 0 ? (
+            ) : upcoming.length === 0 ? (
               <div className="text-center py-10">
                 <p className="text-muted-foreground mb-4">No upcoming appointments yet.</p>
-                <Button asChild className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold">
+                <Button
+                  asChild
+                  className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold"
+                >
                   <Link to="/booking">Book your first session</Link>
                 </Button>
               </div>
             ) : (
               <ul className="space-y-3">
-                {bookings.map((b) => (
-                  <li
-                    key={b.id}
-                    className="flex items-center justify-between gap-4 p-4 rounded-lg border border-border/60 hover:border-gold/50 transition-smooth"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-serif text-lg truncate">
-                        {b.service?.name ?? "Service"}
-                        {b.service?.category && (
-                          <span className="text-xs text-gold tracking-widest uppercase ml-2">
-                            {b.service.category}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(parseISO(b.date), "PPP")} · {b.time}
-                        {b.service?.price ? ` · $${b.service.price}` : ""}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCancel(b.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Cancel
-                    </Button>
-                  </li>
+                {upcoming.map((b) => (
+                  <BookingItem key={b.id} b={b} onCancel={() => handleCancel(b.id)} />
                 ))}
               </ul>
             )}
-          </div>
+          </section>
 
-          {/* Membership */}
-          <div className="rounded-2xl border border-border/60 bg-card/60 p-6 hover:border-gold/60 transition-smooth">
-            <div className="h-10 w-10 rounded-lg bg-gradient-gold flex items-center justify-center mb-4">
-              <Crown className="h-5 w-5 text-primary-foreground" />
+          {/* Past */}
+          <section className="rounded-2xl border border-border/60 bg-card/60 p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="h-10 w-10 rounded-lg bg-surface-elevated border border-border/60 flex items-center justify-center">
+                <History className="h-5 w-5 text-gold" />
+              </div>
+              <h3 className="font-serif text-xl">Past Bookings</h3>
             </div>
-            <h3 className="font-serif text-xl mb-2">Membership Status</h3>
-            <p className="text-sm text-muted-foreground">
-              You're on the Pay Per Visit plan. Upgrade for exclusive perks.
-            </p>
-          </div>
 
-          {/* Recommended */}
-          <div className="md:col-span-2 rounded-2xl border border-border/60 bg-card/60 p-6 hover:border-gold/60 transition-smooth">
-            <div className="h-10 w-10 rounded-lg bg-gradient-gold flex items-center justify-center mb-4">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 rounded-lg" />
+                ))}
+              </div>
+            ) : past.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">
+                Your booking history will appear here.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {past.map((b) => (
+                  <BookingItem key={b.id} b={b} muted />
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Profile / AI nudge */}
+          <section className="rounded-2xl border border-border/60 bg-card/60 p-6 hover:border-gold/60 transition-smooth">
+            <div className="flex items-start gap-4 flex-wrap">
+              <div className="h-10 w-10 rounded-lg bg-gradient-gold flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <h3 className="font-serif text-xl mb-1">Personalize Your Experience</h3>
+                <p className="text-sm text-muted-foreground">
+                  Complete your beauty profile and generate an AI-curated routine.
+                </p>
+              </div>
+              <Button
+                asChild
+                className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold"
+              >
+                <Link to="/profile">Open Profile</Link>
+              </Button>
             </div>
-            <h3 className="font-serif text-xl mb-2">Recommended For You</h3>
-            <p className="text-sm text-muted-foreground">
-              Personalized treatments curated to your preferences.
-            </p>
-          </div>
+          </section>
         </div>
       </main>
     </div>
   );
 };
+
+const BookingItem = ({
+  b,
+  onCancel,
+  muted,
+}: {
+  b: BookingRow;
+  onCancel?: () => void;
+  muted?: boolean;
+}) => (
+  <li
+    className={`flex items-center justify-between gap-4 p-4 rounded-lg border border-border/60 transition-smooth ${
+      muted ? "opacity-80" : "hover:border-gold/50"
+    }`}
+  >
+    <div className="min-w-0">
+      <p className="font-serif text-lg truncate">
+        {b.service?.name ?? "Service"}
+        {b.service?.category && (
+          <span className="text-xs text-gold tracking-widest uppercase ml-2">
+            {b.service.category}
+          </span>
+        )}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {format(parseISO(b.date), "PPP")} · {b.time}
+        {b.service?.price ? ` · $${b.service.price}` : ""}
+        {b.status && b.status !== "confirmed" ? ` · ${b.status}` : ""}
+      </p>
+    </div>
+    {onCancel && (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onCancel}
+        className="text-muted-foreground hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+        Cancel
+      </Button>
+    )}
+  </li>
+);
 
 export default Dashboard;

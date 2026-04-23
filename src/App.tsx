@@ -11,6 +11,8 @@ import ServicesPage from "./pages/ServicesPage.tsx";
 import Pricing from "./pages/Pricing.tsx";
 import Auth from "./pages/Auth.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
+import Profile from "./pages/Profile.tsx";
+import BillingSuccess from "./pages/BillingSuccess.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -43,6 +45,15 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/billing-success" element={<BillingSuccess />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
