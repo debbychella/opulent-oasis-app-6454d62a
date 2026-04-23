@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, LogOut, LayoutDashboard, User as UserIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -76,6 +76,12 @@ export const Navbar = () => {
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">
+                    <UserIcon className="h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-gold">
                   <LogOut className="h-4 w-4" />
@@ -121,6 +127,13 @@ export const Navbar = () => {
                       className="text-lg text-foreground/90 hover:text-gold transition-smooth"
                     >
                       Dashboard
+                    </Link>
+                    <Link
+                      to="/profile"
+                      onClick={() => setOpen(false)}
+                      className="text-lg text-foreground/90 hover:text-gold transition-smooth"
+                    >
+                      Profile
                     </Link>
                     <Button
                       variant="outline"
