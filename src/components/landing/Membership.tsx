@@ -91,13 +91,19 @@ export const Membership = () => {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { plan: plan.key },
       });
-      if (error || !data?.url) {
-        toast.error("Could not start checkout. Please try again.");
+      const errMsg =
+        (error as any)?.context?.error ||
+        (data as any)?.error ||
+        error?.message;
+      if (errMsg || !data?.url) {
+        toast.error(errMsg ? `Checkout failed: ${errMsg}` : "Could not start checkout.");
         return;
       }
       window.location.href = data.url as string;
-    } catch {
-      toast.error("Could not start checkout.");
+    } catch (e) {
+      toast.error(
+        `Could not start checkout: ${e instanceof Error ? e.message : "Unknown error"}`,
+      );
     } finally {
       setPendingPlan(null);
     }
