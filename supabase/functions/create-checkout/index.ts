@@ -56,7 +56,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:5173";
+    // Pinned to live domain so Checkout always returns to the published app.
+    const BASE_URL = "https://opulent-oasis-app.lovable.app";
     const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" });
 
     const session = await stripe.checkout.sessions.create({
@@ -73,8 +74,8 @@ Deno.serve(async (req) => {
           quantity: 1,
         },
       ],
-      success_url: `${origin}/billing-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/pricing`,
+      success_url: `${BASE_URL}/billing-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${BASE_URL}/pricing`,
       metadata: { plan: plan.name, user_id: userRes.user.id },
     });
 

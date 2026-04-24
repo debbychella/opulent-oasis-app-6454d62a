@@ -4,6 +4,7 @@ import { LogOut, Sparkles, Loader2, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { generateRoutine, type Routine } from "@/lib/routine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,8 +21,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 const SKIN_TYPES = ["Normal", "Dry", "Oily", "Combination", "Sensitive"];
 const HAIR_TYPES = ["Straight", "Wavy", "Curly", "Coily", "Fine", "Thick"];
 
-type Routine = { morning: string[]; evening: string[]; notes?: string };
-
 const Profile = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +31,7 @@ const Profile = () => {
   const [hairType, setHairType] = useState<string>("");
   const [concerns, setConcerns] = useState("");
   const [allergies, setAllergies] = useState("");
+  const [profileSaved, setProfileSaved] = useState(false);
 
   const [generating, setGenerating] = useState(false);
   const [routine, setRoutine] = useState<Routine | null>(null);
@@ -45,12 +45,16 @@ const Profile = () => {
         .eq("id", user.id)
         .maybeSingle();
       if (error) {
-        toast.error("Could not load profile.");
+        toast.error(`Could not load profile: ${error.message}`);
       } else if (data) {
         setSkinType(data.skin_type ?? "");
         setHairType(data.hair_type ?? "");
         setConcerns(data.concerns ?? "");
         setAllergies(data.allergies ?? "");
+        // Profile counts as saved if any field is non-empty
+        if (data.skin_type || data.hair_type || data.concerns || data.allergies) {
+          setProfileSaved(true);
+        }
       }
       setLoading(false);
     };
@@ -60,6 +64,10 @@ const Profile = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!skinType && !hairType && !concerns && !allergies) {
+      toast.error("Please fill in at least one field.");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from("profiles").upsert({
       id: user.id,
@@ -71,34 +79,34 @@ const Profile = () => {
     });
     setSaving(false);
     if (error) {
-      toast.error("Could not save profile.");
+      toast.error(`Could not save profile: ${error.message}`);
       return;
     }
+    setProfileSaved(true);
     toast.success("Profile saved");
   };
 
-  const handleGenerate = async () => {
-    setGenerating(true);
-    setRoutine(null);
-    const { data, error } = await supabase.functions.invoke("generate-routine");
-    setGenerating(false);
-
-    if (error) {
-      // Try to read structured error
-      const msg = (error as any)?.context?.error || error.message;
-      if (msg?.includes?.("429") || msg?.includes?.("rate")) {
-        toast.error("AI is busy — please try again in a moment.");
-      } else if (msg?.includes?.("402") || msg?.includes?.("credits")) {
-        toast.error("AI credits exhausted. Please add credits in Workspace Settings.");
-      } else {
-        toast.error("Could not generate routine.");
-      }
+  const handleGenerate = () => {
+    if (!profileSaved) {
+      toast.error("Please save your profile first.");
       return;
     }
-    if (data?.routine) {
-      setRoutine(data.routine as Routine);
-      toast.success("Your personalized routine is ready");
-    }
+    setGenerating(true);
+    setRoutine(null);
+    // Brief delay for UX feedback, then run pure rule-based generator
+    setTimeout(() => {
+      try {
+        const result = generateRoutine({ skinType, hairType, concerns, allergies });
+        setRoutine(result);
+        toast.success("Your personalized routine is ready");
+      } catch (err) {
+        toast.error(
+          `Could not generate routine: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
+      } finally {
+        setGenerating(false);
+      }
+    }, 250);
   };
 
   const handleSignOut = async () => {
@@ -232,16 +240,16 @@ const Profile = () => {
                 <Sparkles className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h3 className="font-serif text-2xl">AI Beauty Routine</h3>
+                <h3 className="font-serif text-2xl">Your Beauty Routine</h3>
                 <p className="text-sm text-muted-foreground">
-                  Personalized morning & evening rituals based on your profile.
+                  Personalized morning &amp; evening rituals based on your profile.
                 </p>
               </div>
             </div>
             <Button
               onClick={handleGenerate}
-              disabled={generating || loading}
-              className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold"
+              disabled={generating || loading || !profileSaved}
+              className="bg-gold text-primary-foreground hover:bg-gold-bright shadow-gold disabled:opacity-50"
             >
               {generating ? (
                 <>
@@ -280,8 +288,9 @@ const Profile = () => {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Save your profile, then generate a routine tailored to your skin, hair, concerns,
-              and allergies.
+              {profileSaved
+                ? "Click Generate to create a routine tailored to your skin, hair, concerns, and allergies."
+                : "Save your profile first to unlock your personalized routine."}
             </p>
           )}
         </section>
