@@ -1,8 +1,5 @@
 project_id = "hfoqdresdyureziejvdc"
 
-[functions.generate-routine]
-verify_jwt = true
-
 [functions.create-checkout]
 verify_jwt = true
 
